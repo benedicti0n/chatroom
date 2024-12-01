@@ -73,18 +73,7 @@ const broadcast = (msg: string, wss: WebSocketServer) => {
 
 
 import cron from 'node-cron';
-import { exec } from 'child_process';
 
-// Schedule a task to run every 10 minutes
 cron.schedule('*/10 * * * *', () => {
     console.log('Pinging server to keep it alive...');
-    exec('node keepAlive.js', (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error executing script: ${error.message}`);
-        }
-        if (stderr) {
-            console.error(`stderr: ${stderr}`);
-        }
-        console.log(`stdout: ${stdout}`);
-    });
 });
