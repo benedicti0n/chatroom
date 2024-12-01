@@ -1,6 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
 
-// Define types for WebSocket messages
 interface JoinMessage {
     type: 'JOIN';
     userName: string;
@@ -36,7 +35,6 @@ wss.on('connection', (ws: WebSocket) => {
                 userName = message.userName;
                 roomId = message.roomId;
 
-                // Broadcast a new user join message
                 const newUserMessage: SystemMessage = {
                     type: 'NEW_USER',
                     message: `${userName} joined the chat room ${roomId}`,
@@ -45,7 +43,6 @@ wss.on('connection', (ws: WebSocket) => {
                 break;
 
             case 'MESSAGE':
-                // Broadcast the user's message to all clients
                 const userMessage: ChatMessage = {
                     type: 'MESSAGE',
                     userName: message.userName,
@@ -57,7 +54,6 @@ wss.on('connection', (ws: WebSocket) => {
     });
 
     ws.on('close', () => {
-        // Broadcast a user leave message
         const leaveMessage: SystemMessage = {
             type: 'LEAVE',
             message: `${userName} has left the chat room.`,
