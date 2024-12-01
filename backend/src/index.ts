@@ -1,26 +1,75 @@
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from 'ws';
 
-const PORT = 8080
+// Define types for WebSocket messages
+interface JoinMessage {
+    type: 'JOIN';
+    userName: string;
+    roomId: string;
+}
 
-const wss = new WebSocketServer({ port: PORT })
+interface ChatMessage {
+    type: 'MESSAGE';
+    userName: string;
+    textMessage: string;
+}
 
-wss.on("connection", (ws, req) => {
-    const roomId = req.url?.split('/')[2];
-    console.log(`Client connected to room: ${roomId}`);
+interface SystemMessage {
+    type: 'NEW_USER' | 'LEAVE';
+    message: string;
+}
 
-    ws.on("message", (msg) => {
-        console.log(`Received message from room ${roomId}: ${msg}`)
+type IncomingMessage = JoinMessage | ChatMessage;
+type OutgoingMessage = ChatMessage | SystemMessage;
 
-        const stringMessage = msg.toString()
-        broadcast(stringMessage, wss)
-    })
-    ws.on("close", () => console.log("Disconnected"))
-})
+const PORT = 8080;
+const wss = new WebSocketServer({ port: PORT });
 
-const broadcast = (msg: string, wss: WebSocketServer) => {
-    wss.clients.forEach(client => {
-        if (client.readyState === client.OPEN) {
-            client.send(msg)
+wss.on('connection', (ws: WebSocket) => {
+    let userName = '';
+    let roomId = '';
+
+    ws.on('message', (msg: string) => {
+        const message: IncomingMessage = JSON.parse(msg);
+
+        switch (message.type) {
+            case 'JOIN':
+                userName = message.userName;
+                roomId = message.roomId;
+
+                // Broadcast a new user join message
+                const newUserMessage: SystemMessage = {
+                    type: 'NEW_USER',
+                    message: `${userName} joined the chat room ${roomId}`,
+                };
+                broadcast(JSON.stringify(newUserMessage), wss);
+                break;
+
+            case 'MESSAGE':
+                // Broadcast the user's message to all clients
+                const userMessage: ChatMessage = {
+                    type: 'MESSAGE',
+                    userName: message.userName,
+                    textMessage: message.textMessage,
+                };
+                broadcast(JSON.stringify(userMessage), wss);
+                break;
         }
     });
-}
+
+    ws.on('close', () => {
+        // Broadcast a user leave message
+        const leaveMessage: SystemMessage = {
+            type: 'LEAVE',
+            message: `${userName} has left the chat room.`,
+        };
+        broadcast(JSON.stringify(leaveMessage), wss);
+    });
+});
+
+const broadcast = (msg: string, wss: WebSocketServer) => {
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(msg);
+        }
+    });
+};
