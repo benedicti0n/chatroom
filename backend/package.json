@@ -2,7 +2,6 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "dev": "tsc && node ./dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,5 +12,13 @@
   "description": "",
   "devDependencies": {
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.0",
+    "@types/express-ws": "^3.0.5",
+    "@types/ws": "^8.5.13",
+    "express": "^4.21.1",
+    "express-ws": "^5.0.2",
+    "ws": "^8.18.0"
   }
 }
