@@ -32,8 +32,10 @@ const Room = () => {
             setWs(socket);
 
             socket.onopen = () => {
+                toast.dismiss();
                 socket.send(JSON.stringify({ type: 'JOIN', roomId, userName: nameInput }));
                 toast(`Connected! Welcome to room ${roomId}`);
+                toast(`Connecting to server of room: ${roomId}...`);
             };
 
             socket.onmessage = (messageIncomingFromServer) => {
@@ -48,14 +50,16 @@ const Room = () => {
     }, [showModal, roomId, nameInput]);
 
     const sendMessage = () => {
-        if (ws?.readyState === WebSocket.OPEN) {
+        if (ws?.readyState === ws?.OPEN) {
             const currentMessage = inputMessage.current?.value.trim();
             if (currentMessage) {
-                ws.send(JSON.stringify({
+                ws?.send(JSON.stringify({
                     type: 'MESSAGE',
                     userName: nameInput,
                     textMessage: currentMessage,
+                    roomId: roomId
                 }));
+
                 inputMessage.current!.value = '';
             }
         }
