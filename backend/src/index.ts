@@ -10,6 +10,7 @@ interface ChatMessage {
     type: 'MESSAGE';
     userName: string;
     textMessage: string;
+    roomId: string;
 }
 
 interface SystemMessage {
@@ -20,26 +21,28 @@ interface SystemMessage {
 type IncomingMessage = JoinMessage | ChatMessage;
 type OutgoingMessage = ChatMessage | SystemMessage;
 
+// Track clients and their room IDs
+const clients: Map<WebSocket, { roomId: string; userName: string }> = new Map();
+
 const PORT = 8080;
 const wss = new WebSocketServer({ port: PORT });
 
 wss.on('connection', (ws: WebSocket) => {
-    let userName = '';
-    let roomId = '';
-
     ws.on('message', (msg: string) => {
         const message: IncomingMessage = JSON.parse(msg);
 
         switch (message.type) {
             case 'JOIN':
-                userName = message.userName;
-                roomId = message.roomId;
+                // Save the client's room ID and user name
+                clients.set(ws, { roomId: message.roomId, userName: message.userName });
 
                 const newUserMessage: SystemMessage = {
                     type: 'NEW_USER',
-                    message: `${userName} joined the chat room ${roomId}`,
+                    message: `${message.userName} joined the chat room ${message.roomId}`,
                 };
-                broadcast(JSON.stringify(newUserMessage), wss);
+
+                // Broadcast only to clients in the same room
+                broadcast(JSON.stringify(newUserMessage), message.roomId);
                 break;
 
             case 'MESSAGE':
@@ -47,33 +50,36 @@ wss.on('connection', (ws: WebSocket) => {
                     type: 'MESSAGE',
                     userName: message.userName,
                     textMessage: message.textMessage,
+                    roomId: message.roomId,
                 };
-                broadcast(JSON.stringify(userMessage), wss);
+
+                // Broadcast only to clients in the same room
+                broadcast(JSON.stringify(userMessage), message.roomId);
                 break;
         }
     });
 
     ws.on('close', () => {
-        const leaveMessage: SystemMessage = {
-            type: 'LEAVE',
-            message: `${userName} has left the chat room.`,
-        };
-        broadcast(JSON.stringify(leaveMessage), wss);
+        const clientInfo = clients.get(ws);
+        if (clientInfo) {
+            const leaveMessage: SystemMessage = {
+                type: 'LEAVE',
+                message: `${clientInfo.userName} has left the chat room.`,
+            };
+
+            // Broadcast only to clients in the same room
+            broadcast(JSON.stringify(leaveMessage), clientInfo.roomId);
+            clients.delete(ws);
+        }
     });
 });
 
-const broadcast = (msg: string, wss: WebSocketServer) => {
+// Broadcast message only to clients in the specified room
+const broadcast = (msg: string, roomId: string) => {
     wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
+        const clientInfo = clients.get(client);
+        if (clientInfo && clientInfo.roomId === roomId && client.readyState === WebSocket.OPEN) {
             client.send(msg);
         }
     });
 };
-
-
-
-import cron from 'node-cron';
-
-cron.schedule('*/10 * * * *', () => {
-    console.log('Pinging server to keep it alive...');
-});
