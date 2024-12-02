@@ -33,7 +33,6 @@ wss.on('connection', (ws: WebSocket) => {
 
         switch (message.type) {
             case 'JOIN':
-                // Save the client's room ID and user name
                 clients.set(ws, { roomId: message.roomId, userName: message.userName });
 
                 const newUserMessage: SystemMessage = {
@@ -41,7 +40,6 @@ wss.on('connection', (ws: WebSocket) => {
                     message: `${message.userName} joined the chat room ${message.roomId}`,
                 };
 
-                // Broadcast only to clients in the same room
                 broadcast(JSON.stringify(newUserMessage), message.roomId);
                 break;
 
@@ -53,7 +51,6 @@ wss.on('connection', (ws: WebSocket) => {
                     roomId: message.roomId,
                 };
 
-                // Broadcast only to clients in the same room
                 broadcast(JSON.stringify(userMessage), message.roomId);
                 break;
         }
@@ -67,7 +64,6 @@ wss.on('connection', (ws: WebSocket) => {
                 message: `${clientInfo.userName} has left the chat room.`,
             };
 
-            // Broadcast only to clients in the same room
             broadcast(JSON.stringify(leaveMessage), clientInfo.roomId);
             clients.delete(ws);
         }
